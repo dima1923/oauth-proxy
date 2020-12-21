@@ -240,7 +240,7 @@ func NewOAuthProxy(opts *Options, validator func(string) bool) *OAuthProxy {
 	log.Printf("Cookie settings: name:%s secure(https):%v httponly:%v expiry:%s domain:%s samesite:%s refresh:%s", opts.CookieName, opts.CookieSecure, opts.CookieHttpOnly, opts.CookieExpire, domain, opts.CookieSameSite, refresh)
 
 	var cipher *cookie.Cipher
-	if opts.PassAccessToken || (opts.CookieRefresh != time.Duration(0)) {
+	if opts.PassAccessToken || (opts.CookieRefresh != time.Duration(0)) || opts.PassUserBearerToken {
 		var err error
 		cipher, err = cookie.NewCipher(secretBytes(opts.CookieSecret))
 		if err != nil {
@@ -819,8 +819,8 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 			rw.Header().Set("X-Auth-Request-Email", session.Email)
 		}
 	}
-	if ((!tokenProvidedByClient && p.PassAccessToken) || (tokenProvidedByClient && p.PassUserBearerToken)) && session.AccessToken != "" {
-		req.Header["X-Forwarded-Access-Token"] = []string{session.AccessToken}
+	if ((!tokenProvidedByClient && p.PassAccessToken) || p.PassUserBearerToken) && session.AccessToken != "" {
+		rw.Header().Set("X-Access-Token", session.AccessToken)
 	}
 	if session.Email == "" {
 		rw.Header().Set("GAP-Auth", session.User)
